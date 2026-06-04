@@ -96,6 +96,11 @@ def generate_claims(
     hospital_ids = hospitals_df["hospital_id"].values
     icd_codes = list(ICD10_CODES.keys())
 
+    # Pre-build patient policy start date lookup (avoids O(n) scan per claim)
+    patient_policy_dates = dict(
+        zip(patients_df["patient_id"], patients_df["policy_start_date"])
+    )
+
     # Fraud assignment
     fraud_labels, fraud_types = _assign_fraud(n_claims, rng)
 
@@ -157,9 +162,8 @@ def generate_claims(
         # TPA
         tpa = rng.choice(TPA_LIST)
 
-        # Days since policy start (approximate)
-        patient_row = patients_df.loc[patients_df["patient_id"] == patient_id].iloc[0]
-        policy_start = pd.Timestamp(patient_row["policy_start_date"])
+        # Days since policy start (fast dict lookup)
+        policy_start = pd.Timestamp(patient_policy_dates[patient_id])
         days_since_policy = max(0, (date_of_admission - policy_start).days)
 
         # Confidence score
