@@ -7,6 +7,8 @@ Usage: python adaption/download_adapted.py [--dataset-id <id>]
 import os
 import argparse
 import requests
+from dotenv import load_dotenv
+load_dotenv()
 from adaption import Adaption
 
 

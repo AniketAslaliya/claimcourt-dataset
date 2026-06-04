@@ -8,6 +8,8 @@ Usage: python adaption/run_recipes.py --dataset-id <id> --reasoning-traces
 import os
 import argparse
 import requests
+from dotenv import load_dotenv
+load_dotenv()
 from adaption import Adaption, DatasetTimeout
 
 

@@ -7,6 +7,8 @@ Usage: python adaption/upload.py --file data/claims.csv --name indiaclaimguard-v
 import os
 import time
 import argparse
+from dotenv import load_dotenv
+load_dotenv()
 from adaption import Adaption
 
 
