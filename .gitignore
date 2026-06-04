@@ -31,3 +31,7 @@ Thumbs.db
 
 # Kaggle
 kaggle.json
+
+# Claude local overrides (personal, not committed)
+.claude/CLAUDE.local.md
+.claude/settings.local.json

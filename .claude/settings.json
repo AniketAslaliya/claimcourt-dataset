@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "python generate_dataset.py",
+      "python validators/stats_check.py",
+      "python adaption/upload.py",
+      "python adaption/run_recipes.py",
+      "pip install",
+      "git add",
+      "git commit",
+      "git push",
+      "git status",
+      "git log",
+      "git diff"
+    ],
+    "deny": [
+      "rm -rf",
+      "del /s /q",
+      "format"
+    ]
+  },
+  "preferences": {
+    "language": "python",
+    "python_version": "3.11",
+    "style": "google_docstrings",
+    "encoding": "ascii_safe",
+    "line_length": 100,
+    "test_before_commit": true
+  }
+}

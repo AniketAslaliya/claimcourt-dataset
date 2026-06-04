@@ -28,29 +28,48 @@ from config import (
 
 
 def _assign_fraud(n_claims: int, rng: np.random.Generator):
-    """Assign fraud labels and types to claims based on target fraud rate."""
+    """Assign fraud labels and types to claims based on target fraud rate.
+
+    Guarantees at least 1 claim of each fraud type, even in small samples.
+    Remaining fraud slots are filled by weighted random sampling.
+    """
     n_fraud = int(n_claims * TARGET_FRAUD_RATE)
     n_legit = n_claims - n_fraud
 
-    # Fraud type assignment
     fraud_type_names = list(FRAUD_DISTRIBUTION.keys())
     fraud_type_weights = list(FRAUD_DISTRIBUTION.values())
 
-    # Use integer indices to avoid numpy string truncation
-    fraud_indices = rng.choice(
-        len(fraud_type_names), size=n_fraud, p=fraud_type_weights
-    )
-    fraud_types_assigned = [fraud_type_names[i] for i in fraud_indices]
+    # Guarantee at least 1 of each fraud type
+    guaranteed = list(fraud_type_names)  # 12 types, one each
+    n_remaining = n_fraud - len(guaranteed)
 
-    # Build arrays as Python lists to avoid numpy string truncation
+    if n_remaining < 0:
+        # Edge case: fewer fraud slots than types. Sample a subset.
+        guaranteed = list(rng.choice(
+            fraud_type_names, size=n_fraud, replace=False,
+        ))
+        n_remaining = 0
+
+    # Fill remaining slots by weighted random sampling
+    if n_remaining > 0:
+        extra_indices = rng.choice(
+            len(fraud_type_names), size=n_remaining, p=fraud_type_weights
+        )
+        extra = [fraud_type_names[i] for i in extra_indices]
+        guaranteed.extend(extra)
+
+    # Shuffle the fraud type assignments
+    rng.shuffle(guaranteed)
+
+    # Build full arrays: fraud first, then legitimate
     labels = [0] * n_claims
     types = ["legitimate"] * n_claims
 
     for i in range(n_fraud):
         labels[i] = 1
-        types[i] = fraud_types_assigned[i]
+        types[i] = guaranteed[i]
 
-    # Shuffle together
+    # Shuffle everything together
     perm = rng.permutation(n_claims).tolist()
     labels = [labels[p] for p in perm]
     types = [types[p] for p in perm]
