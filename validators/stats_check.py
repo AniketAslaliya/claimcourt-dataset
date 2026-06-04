@@ -20,7 +20,7 @@ VALID_ICD_PREFIXES = list("ABCDEFGHIJKLMNOPQRSTUVWXYZ") + ["Z"]
 
 
 def check(condition, message):
-    status = "✓" if condition else "✗"
+    status = "[PASS]" if condition else "[FAIL]"
     print(f"  {status} {message}")
     return condition
 
@@ -35,7 +35,7 @@ def run_checks(path):
     # Fraud rate
     fraud_rate = df["fraud_label"].mean()
     ok = abs(fraud_rate - REQUIRED_FRAUD_RATE) <= TOLERANCE
-    check(ok, f"Fraud rate: {fraud_rate:.1%} (target {REQUIRED_FRAUD_RATE:.0%} ±{TOLERANCE:.0%})")
+    check(ok, f"Fraud rate: {fraud_rate:.1%} (target {REQUIRED_FRAUD_RATE:.0%} +/-{TOLERANCE:.0%})")
     passed += ok; total += 1
 
     # No nulls in required fields
