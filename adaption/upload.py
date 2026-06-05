@@ -1,7 +1,8 @@
 """
 adaption/upload.py
-Upload claims.csv to Adaption and save dataset_id to .env
-Usage: python adaption/upload.py --file data/claims.csv --name indiaclaimguard-v1
+Upload claims_for_adaption.csv to Adaption and save dataset_id to .env.
+Run prepare_for_adaption.py first to generate the enriched file.
+Usage: python adaption/upload.py --file data/claims_for_adaption.csv --name indiaclaimguard-v1
 """
 
 import os
@@ -45,7 +46,7 @@ def upload_dataset(file_path: str, name: str):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--file", default="data/claims.csv")
+    parser.add_argument("--file", default="data/claims_for_adaption.csv")
     parser.add_argument("--name", default="indiaclaimguard-v1")
     args = parser.parse_args()
     upload_dataset(args.file, args.name)
