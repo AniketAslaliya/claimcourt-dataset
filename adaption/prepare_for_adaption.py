@@ -22,39 +22,114 @@ load_dotenv()
 
 
 def build_claim_description(row: pd.Series) -> str:
-    """Build a medically-framed natural-language adjudication prompt."""
-    cashless_str = "cashless settlement" if row["is_cashless"] else "reimbursement"
-    phantom_note = "flagged as unregistered/phantom facility" if row["is_phantom"] else "IRDAI-empanelled facility"
-    blacklist_note = "blacklisted provider" if row["provider_blacklist_flag"] else "provider in good standing"
-    icd_match_note = "procedure is consistent with diagnosis" if row["icd_code_matches_procedure"] else "procedure does NOT match diagnosis"
-    pre_existing = row["pre_existing_conditions"] if row["pre_existing_conditions"] != "none" else "no declared pre-existing conditions"
+    """Build a medically-framed prompt using one of 4 rotating styles for diversity."""
+    days_to_file = (pd.Timestamp(row["date_of_claim"]) - pd.Timestamp(row["date_of_discharge"])).days
     policy_years = round(int(row["days_since_policy_start"]) / 365, 1)
+    pre_existing = row["pre_existing_conditions"] if row["pre_existing_conditions"] != "none" else "no declared pre-existing conditions"
+    cashless_str = "cashless" if row["is_cashless"] else "reimbursement"
+    facility_status = "unregistered phantom facility" if row["is_phantom"] else "IRDAI-empanelled hospital"
+    blacklist_str = "blacklisted" if row["provider_blacklist_flag"] else "not blacklisted"
+    icd_match_str = "consistent with diagnosis" if row["icd_code_matches_procedure"] else "inconsistent with diagnosis — mismatch flagged"
+    prior_fraud_str = "prior fraud recorded on this policy" if row["previous_fraud_on_policy"] else "no prior fraud history"
+    identity_str = f"identity {('verified' if row['identity_verified'] else 'unverified')} via {row['kyc_type']}"
 
-    return (
-        f"Clinical Health Insurance Adjudication Review\n\n"
-        f"Patient Presentation: A {row['age']}-year-old {row['gender']} patient from {row['state']} "
-        f"({row['language']}-speaking) presented with {row['diagnosis_description']} "
-        f"(ICD-10: {row['diagnosis_primary']}). "
-        f"The patient was admitted on {row['date_of_admission']} and discharged on {row['date_of_discharge']}, "
-        f"representing a {row['length_of_stay_days']}-day inpatient stay. "
-        f"Medical history includes: {pre_existing}.\n\n"
-        f"Treating Facility: {row['hospital_name']}, located in {row['hospital_city']} "
-        f"(Tier {row['city_tier']} city), specialising in {row['specialization']}. "
-        f"Facility status: {phantom_note}, {blacklist_note}.\n\n"
-        f"Clinical Financials: Treatment cost of INR {int(row['claim_amount_requested_inr']):,} submitted "
-        f"via {cashless_str} under a {row['policy_type']} policy (active {policy_years} years) "
-        f"through {row['tpa']} TPA. "
-        f"Approved amount: INR {int(row['claim_amount_approved_inr']):,}. "
-        f"Pharmacy expenditure constitutes {row['pharmacy_bill_ratio']*100:.0f}% of total bill.\n\n"
-        f"Clinical Risk Indicators: {icd_match_note}. "
-        f"Patient has {row['num_insurers_same_event']} insurer(s) for this hospitalisation event. "
-        f"Discharge-to-readmission interval: {row['discharge_readmit_gap_days']} days. "
-        f"Prior fraud on this policy: {'yes' if row['previous_fraud_on_policy'] else 'none recorded'}. "
-        f"Identity verification: {row['kyc_type']} ({'verified' if row['identity_verified'] else 'unverified'}). "
-        f"Claim filed {(pd.Timestamp(row['date_of_claim']) - pd.Timestamp(row['date_of_discharge'])).days} days post-discharge. "
-        f"Historical claim volume: {row['number_of_claims_lifetime']} lifetime, "
-        f"{row['number_of_claims_last_12m']} in past 12 months."
-    )
+    # 4 rotating styles keyed by claim_id suffix to ensure even distribution
+    style = int(row["claim_id"].replace("C", "")) % 4
+
+    if style == 0:
+        # Style A: Clinical case narrative
+        return (
+            f"Adjudication Request — Health Insurance Claim\n\n"
+            f"A {row['age']}-year-old {row['gender']} patient ({row['language']}-speaking, {row['state']}) "
+            f"was hospitalised at {row['hospital_name']} in {row['hospital_city']} "
+            f"with a primary diagnosis of {row['diagnosis_description']} (ICD-10: {row['diagnosis_primary']}). "
+            f"Inpatient stay: {row['date_of_admission']} to {row['date_of_discharge']} "
+            f"({row['length_of_stay_days']} days). Medical history: {pre_existing}.\n\n"
+            f"The treating facility is a {facility_status}, specialising in {row['specialization']}, "
+            f"and is currently {blacklist_str}. "
+            f"Claim submitted as {cashless_str} via {row['tpa']} TPA under a {row['policy_type']} "
+            f"health policy active for {policy_years} years. "
+            f"Billed amount: INR {int(row['claim_amount_requested_inr']):,}; "
+            f"approved: INR {int(row['claim_amount_approved_inr']):,}. "
+            f"Pharmacy share of total bill: {row['pharmacy_bill_ratio']*100:.0f}%.\n\n"
+            f"Risk flags: Procedure is {icd_match_str}. {prior_fraud_str.capitalize()}. "
+            f"{row['num_insurers_same_event']} insurer(s) for this event. "
+            f"Readmission gap: {row['discharge_readmit_gap_days']} days. "
+            f"Claim filed {days_to_file} days post-discharge. {identity_str.capitalize()}."
+        )
+
+    elif style == 1:
+        # Style B: Adjudicator desk note
+        return (
+            f"IRDAI Fraud Screening — Inpatient Claim Review\n\n"
+            f"Claim received from {row['tpa']} TPA for a {row['policy_type']} policyholder "
+            f"({row['age']} years, {row['gender']}, {row['state']}). "
+            f"Diagnosis on admission: {row['diagnosis_description']} (ICD-10: {row['diagnosis_primary']}). "
+            f"Hospitalisation period: {row['length_of_stay_days']} days "
+            f"({row['date_of_admission']} — {row['date_of_discharge']}). "
+            f"Comorbidities on record: {pre_existing}.\n\n"
+            f"Provider: {row['hospital_name']}, {row['hospital_city']} (Tier {row['city_tier']}), "
+            f"{row['specialization']} specialisation. "
+            f"Provider registry status: {facility_status}, {blacklist_str}. "
+            f"Billing: INR {int(row['claim_amount_requested_inr']):,} requested under {cashless_str} mode; "
+            f"INR {int(row['claim_amount_approved_inr']):,} sanctioned. "
+            f"Pharmacy proportion: {row['pharmacy_bill_ratio']*100:.0f}% of total billed amount.\n\n"
+            f"Screening indicators: ICD-procedure alignment is {icd_match_str}. "
+            f"Policy tenure: {policy_years} years ({prior_fraud_str}). "
+            f"Duplicate insurer check: {row['num_insurers_same_event']} insurer(s). "
+            f"Post-discharge readmission gap: {row['discharge_readmit_gap_days']} days. "
+            f"Filing delay: {days_to_file} days after discharge. "
+            f"KYC status: {identity_str}."
+        )
+
+    elif style == 2:
+        # Style C: Clinical audit summary
+        return (
+            f"Health Claim Clinical Audit — {row['diagnosis_description']}\n\n"
+            f"Patient: {row['age']}-year-old {row['gender']}, {row['language']}-speaking, "
+            f"domiciled in {row['state']}. "
+            f"Presenting condition: {row['diagnosis_description']} (ICD-10: {row['diagnosis_primary']}). "
+            f"Admitted {row['date_of_admission']}, discharged {row['date_of_discharge']} "
+            f"after {row['length_of_stay_days']} days of inpatient treatment. "
+            f"Declared medical history: {pre_existing}. "
+            f"Patient {identity_str}.\n\n"
+            f"Treating hospital: {row['hospital_name']} ({row['hospital_city']}, Tier {row['city_tier']}), "
+            f"a {facility_status} with {row['specialization']} focus, currently {blacklist_str}. "
+            f"Total treatment expenditure: INR {int(row['claim_amount_requested_inr']):,} "
+            f"({cashless_str} claim, {row['tpa']}). "
+            f"Sanctioned: INR {int(row['claim_amount_approved_inr']):,}. "
+            f"Pharmacy-to-total ratio: {row['pharmacy_bill_ratio']*100:.0f}%.\n\n"
+            f"Fraud screening: Procedure code is {icd_match_str}. "
+            f"{prior_fraud_str.capitalize()}. "
+            f"Multi-insurer flag: {row['num_insurers_same_event']} insurer(s) for this admission episode. "
+            f"Discharge-readmission interval: {row['discharge_readmit_gap_days']} days. "
+            f"Submission lag: {days_to_file} days post-discharge."
+        )
+
+    else:
+        # Style D: Case referral format
+        return (
+            f"Insurance Fraud Referral — Medical Claim Assessment\n\n"
+            f"Referral for clinical review: {row['diagnosis_description']} (ICD-10: {row['diagnosis_primary']}) "
+            f"in a {row['age']}-year-old {row['gender']} patient from {row['state']} "
+            f"({row['language']}-speaking). "
+            f"Inpatient admission at {row['hospital_name']}, {row['hospital_city']}: "
+            f"{row['date_of_admission']} to {row['date_of_discharge']} ({row['length_of_stay_days']} days). "
+            f"Pre-existing conditions: {pre_existing}.\n\n"
+            f"Hospital profile: {row['specialization']} facility, Tier {row['city_tier']} city. "
+            f"Registry classification: {facility_status}. Blacklist status: {blacklist_str}. "
+            f"Claim mode: {cashless_str} via {row['tpa']} under {row['policy_type']} cover "
+            f"({policy_years}-year policy). "
+            f"Claimed: INR {int(row['claim_amount_requested_inr']):,}. "
+            f"Approved: INR {int(row['claim_amount_approved_inr']):,}. "
+            f"Pharmacy bill share: {row['pharmacy_bill_ratio']*100:.0f}%.\n\n"
+            f"Alert indicators: Procedure-diagnosis match is {icd_match_str}. "
+            f"{prior_fraud_str.capitalize()}. "
+            f"Insurers on record for this event: {row['num_insurers_same_event']}. "
+            f"Days between discharge and readmission: {row['discharge_readmit_gap_days']}. "
+            f"Claim submitted {days_to_file} days after discharge. "
+            f"Identity check: {identity_str}."
+        )
 
 
 def build_adjudication_reasoning(row: pd.Series) -> str:
