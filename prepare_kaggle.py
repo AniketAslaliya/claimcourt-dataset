@@ -19,19 +19,23 @@ KAGGLE_DIR = "kaggle-upload"
 FILES_TO_COPY = {
     "data/patients.csv": "patients.csv",
     "data/hospitals.csv": "hospitals.csv",
+    "data/documents.csv": "documents.csv",
     "generate_dataset.py": "generate_dataset.py",
     "config.py": "config.py",
     "Readme_Kaggle.md": "README.md",
     "templates/DATA_DICTIONARY.md": "DATA_DICTIONARY.md",
+    "notebooks/starter_notebook.py": "starter_notebook.py",
+    "notebooks/baseline_eda.py": "baseline_eda.py",
 }
 
 DATASET_METADATA = {
     "title": "IndiaClaimGuard: Synthetic Indian Health Insurance Fraud Dataset (IRDAI-aligned, 100K)",
-    "id": "aniketaslaliya/indiaclaimguard",
+    "id": "aniketaslaliya30/adaption-india-health-claim-fraud-audit",
     "licenses": [{"name": "CC-BY-4.0"}],
     "keywords": [
         "insurance-fraud", "india", "healthcare", "tabular", "synthetic",
         "classification", "anomaly-detection", "rl", "finance", "icd-10", "irdai",
+        "fraud-detection", "nlp", "medical",
     ],
     "resources": [],
 }

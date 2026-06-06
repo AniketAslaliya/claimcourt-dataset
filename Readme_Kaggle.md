@@ -99,9 +99,8 @@ observations from the Indian insurance ecosystem.
 
 ## Baseline Results
 
-Run baseline_eda.ipynb to reproduce:
-- XGBoost: AUC-ROC = [fill after AutoScientist run]
-- ClaimCourt (calibrated RL): AUC-ROC = [fill], ECE = [fill]
+Run `baseline_eda.py` to reproduce. XGBoost and ClaimCourt (calibrated RL)
+baseline results will be published after AutoScientist training run completes.
 
 ---
 
@@ -114,7 +113,7 @@ If you use this dataset, please cite:
   title={IndiaClaimGuard: Synthetic Indian Health Insurance Fraud Dataset},
   author={Aslaliya, Aniket},
   year={2026},
-  url={https://www.kaggle.com/datasets/aniketaslaliya/indiaclaimguard},
+  url={https://www.kaggle.com/datasets/aniketaslaliya30/adaption-india-health-claim-fraud-audit},
   note={IRDAI-aligned, 100K claims, 7 Indian languages, 12 fraud types}
 }
 ```
